@@ -22,10 +22,14 @@ function script:Add-Context-Entry {
     $Command
     )
 
-    if (Test-Path "$BasePath\shell") {
+    if (Test-Path -Path "$BasePath\shell") {
         New-Item -Path "$BasePath\shell" -Name "$Name"
         Set-Item -Path "$BasePath\shell\$Name" -Value $Label
         New-ItemProperty -Path "$BasePath\shell\$Name" -Name "NoWorkingDirectory" -Value "" -PropertyType String
+        # Include shield icon for runas (Admin).
+        if ($Name -eq "runas") {
+            New-ItemProperty -Path "$BasePath\shell\$Name" -Name "HasLUAShield" -Value "" -PropertyType String
+        }
         New-Item -Path "$BasePath\shell\$Name" -Name "command"
         Set-Item -Path "$BasePath\shell\$Name\command" -Value $Command
     }
@@ -51,34 +55,77 @@ function script:Add-Context-Entries {
 
 function script:Uninstall-Context-Entries {
     ForEach ($path in $ContextMenuPaths) {
-        if (Test-Path "$path\shell\cygwin") {
+        if (Test-Path -Path "$path\shell\cygwin") {
             Remove-Item -Path "$path\shell\cygwin" -Recurse -Force
         }
-        if (Test-Path "$path\shell\powershell") {
+        if (Test-Path -Path "$path\shell\powershell") {
             Remove-Item -Path "$path\shell\powershell" -Recurse -Force
         }
-        if (Test-Path "$path\shell\runas") {
+        if (Test-Path -Path "$path\shell\runas") {
             Remove-Item -Path "$path\shell\runas" -Recurse -Force
         }
     }
 }
 
+function script:Get-RegistryItemString {
+    [OutputType([String])]
+    Param(
+    [parameter(Mandatory=$true)]
+    [String]
+    $Path,
+    [parameter(Mandatory=$true)]
+    [String]
+    $Property
+    )
+
+    $result = $null
+    if (Test-Path -Path $Path) {
+        $result = $(Get-ItemProperty -Path $Path).$Property
+    }
+    return $result
+}
+
+function script:Get-Cygwin-Directory {
+    [OutputType([String])]
+
+    # Maybe I just had a broken installation, but installs seem
+    # to be a little inconsistent, so checking everything.
+    $registryPath = "HKLM:\SOFTWARE\Cygwin\setup"
+    $registryProp = "rootdir"
+    $installDir = Get-RegistryItemString $registryPath $registryProp
+    if (![string]::IsNullOrEmpty($installDir) -and (Test-Path -Path $installDir)) {
+        return $installDir
+    }
+
+    $registryPath = "HKCU:\SOFTWARE\Cygwin\setup"
+    $installDir = Get-RegistryItemString $registryPath $registryProp
+    if (![string]::IsNullOrEmpty($installDir) -and (Test-Path -Path $installDir)) {
+        return $installDir
+    }
+    
+    if (Test-Path -Path "C:\cygwin\bin\mintty.exe") {
+        return "C:\cygwin"
+    } elseif (Test-Path -Path "C:\cygwin64\bin\mintty.exe") {
+        return "C:\cygwin64"
+    }
+
+    return $null;
+}
+
 function script:Install-Context-Entries {
     # Install Cygwin entries (if Cygwin appears to be installed).
-    if (Test-Path "HKLM:\SOFTWARE\Cygwin\setup") {
-        $cygwinDir = $(Get-ItemProperty "HKLM:\SOFTWARE\Cygwin\setup").rootdir
-        if (![string]::IsNullOrEmpty($cygwinDir) -and (Test-Path $cygwinDir)) {
-            $cygwinDir = $cygwinDir -replace '\\*$', '' # Don't want any trailing slashes in command.
-            $cygwinDirDoubleSlash = $cygwinDir -replace "\\", "\\"
-            Add-Context-Entries "cygwin" "Open cygwin window here" "$cygwinDirDoubleSlash\\bin\\mintty.exe -i /Cygwin-Terminal.ico $cygwinDir\bin\bash.exe  -l -c ""cd \""%V\"" ; exec bash"""
-        }
+    $cygwinDir = Get-Cygwin-Directory
+    if ($cygwinDir) {
+        $cygwinDir = $cygwinDir -replace '\\*$', '' # Don't want any trailing slashes in command.
+        $cygwinDirDoubleSlash = $cygwinDir -replace "\\", "\\"
+        Add-Context-Entries "cygwin" "Open cygwin window here" "$cygwinDirDoubleSlash\\bin\\mintty.exe -i /Cygwin-Terminal.ico $cygwinDir\bin\bash.exe  -l -c ""cd \""%V\"" ; exec bash"""
     }
 
     # Install Powershell entries.
     Add-Context-Entries "powershell" "Open powershell window here" "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoExit -Command Set-Location -LiteralPath '%V'"
 
     # Install Powershell (Admin) entries.
-    Add-Context-Entries "runas" "Open powershell window here (Administrator)" "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoExit -Command Set-Location -LiteralPath '%V'"
+    Add-Context-Entries "runas" "Open powershell window here (Admin)" "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoExit -Command Set-Location -LiteralPath '%V'"
 }
 
 Uninstall-Context-Entries
