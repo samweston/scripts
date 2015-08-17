@@ -6,7 +6,7 @@
 
 $script:ContextMenuPaths = @("Registry::HKEY_CLASSES_ROOT\Directory\Background","Registry::HKEY_CLASSES_ROOT\Directory"<#,"Registry::HKEY_CLASSES_ROOT\Drive"#>)
 
-function script:Add-Context-Entry {
+function Add-Context-Entry {
     Param(
     [parameter(Mandatory=$true)]
     [String]
@@ -35,7 +35,7 @@ function script:Add-Context-Entry {
     }
 }
 
-function script:Add-Context-Entries {
+function Add-Context-Entries {
     Param(
     [parameter(Mandatory=$true)]
     [String]
@@ -53,7 +53,7 @@ function script:Add-Context-Entries {
     }
 }
 
-function script:Uninstall-Context-Entries {
+function Uninstall-Context-Entries {
     ForEach ($path in $ContextMenuPaths) {
         if (Test-Path -Path "$path\shell\cygwin") {
             Remove-Item -Path "$path\shell\cygwin" -Recurse -Force
@@ -67,7 +67,7 @@ function script:Uninstall-Context-Entries {
     }
 }
 
-function script:Get-RegistryItemString {
+function Get-RegistryItemString {
     [OutputType([String])]
     Param(
     [parameter(Mandatory=$true)]
@@ -85,7 +85,7 @@ function script:Get-RegistryItemString {
     return $result
 }
 
-function script:Get-Cygwin-Directory {
+function Get-Cygwin-Directory {
     [OutputType([String])]
 
     # Maybe I just had a broken installation, but installs seem
@@ -112,7 +112,7 @@ function script:Get-Cygwin-Directory {
     return $null;
 }
 
-function script:Install-Context-Entries {
+function Install-Context-Entries {
     # Install Cygwin entries (if Cygwin appears to be installed).
     $cygwinDir = Get-Cygwin-Directory
     if ($cygwinDir) {
