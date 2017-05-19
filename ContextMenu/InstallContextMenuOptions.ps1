@@ -4,7 +4,7 @@
 #requires -runasadministrator
 
 Param (
-    [ValidateSet("cygwin", "powershell", "powershelladmin")]
+    [ValidateSet("cygwin", "powershelladmin")]
     [Parameter(Mandatory=$true)]
     [String] $ItemType,
     [Switch] $Uninstall
