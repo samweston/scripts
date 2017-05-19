@@ -138,14 +138,6 @@ function Get-Cygwin-Config {
     return New-Config -Name $name -Label $label -Command $command
 }
 
-function Get-Powershell-Config {
-    $name = "powershell"
-    $label = "Open powershell window here"
-    $command = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoExit -Command Set-Location -LiteralPath '%V'"
-
-    return New-Config -Name $name -Label $label -Command $command
-}
-
 function Get-PowershellAdmin-Config {
     $name = "runas"
     $label = "Open powershell window here (Admin)"
@@ -156,8 +148,6 @@ function Get-PowershellAdmin-Config {
 
 if ($ItemType -eq "cygwin") {
     $config = Get-Cygwin-Config
-} elseif ($ItemType -eq "powershell") {
-    $config = Get-Powershell-Config
 } elseif ($ItemType -eq "powershelladmin") {
     $config = Get-PowershellAdmin-Config
 }
