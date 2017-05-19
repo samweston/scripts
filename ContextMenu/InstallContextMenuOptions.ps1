@@ -4,7 +4,7 @@
 #requires -runasadministrator
 
 Param (
-    [ValidateSet("cygwin", "powershelladmin")]
+    [ValidateSet("cygwin", "powershelladmin", "bashonwindows")]
     [Parameter(Mandatory=$true)]
     [String] $ItemType,
     [Switch] $Uninstall
@@ -21,7 +21,10 @@ function Install-Context-Entry {
         [parameter(Mandatory=$true)]
         [String] $Label,
         [parameter(Mandatory=$true)]
-        [String] $Command
+        [String] $Command,
+        [parameter(Mandatory=$true)]
+        [AllowEmptyString()]
+        [String] $Icon
     )
 
     if (Test-Path -Path "$BasePath\shell") {
@@ -34,6 +37,9 @@ function Install-Context-Entry {
         }
         New-Item -Path "$BasePath\shell\$Name" -Name "command" | Out-Null
         Set-Item -Path "$BasePath\shell\$Name\command" -Value $Command | Out-Null
+        if ($Icon) {
+            New-ItemProperty -Path "$BasePath\shell\$Name" -Name "Icon" -Value $Icon -PropertyType String | Out-Null
+        }
     }
 }
 
@@ -44,11 +50,14 @@ function Install-Context-Entries {
         [parameter(Mandatory=$true)]
         [String] $Label,
         [parameter(Mandatory=$true)]
-        [String] $Command
+        [String] $Command,
+        [parameter(Mandatory=$true)]
+        [AllowEmptyString()]
+        [String] $Icon
     )
 
     ForEach ($path in $ContextMenuPaths) {
-        Install-Context-Entry -BasePath $path -Name $Name -Label $Label -Command $Command
+        Install-Context-Entry -BasePath $path -Name $Name -Label $Label -Command $Command -Icon $Icon
     }
 }
 
@@ -87,12 +96,17 @@ function New-Config {
         [parameter(Mandatory=$true)]
         [String] $Label,
         [parameter(Mandatory=$true)]
-        [String] $Command
+        [AllowEmptyString()]
+        [String] $Command,
+        [parameter(Mandatory=$true)]
+        [AllowEmptyString()]
+        [String] $Icon
     )
     return New-Object -TypeName PSObject -Property @{
         "Name" = $Name;
         "Label" = $Label;
         "Command" = $Command;
+        "Icon" = $Icon;
     }
 }
 
@@ -135,7 +149,7 @@ function Get-Cygwin-Config {
         $command = "$directoryDblSlash\\bin\\mintty.exe -i /Cygwin-Terminal.ico $directory\bin\bash.exe  -l -c ""cd \""%V\"" ; exec bash"""
     }
 
-    return New-Config -Name $name -Label $label -Command $command
+    return New-Config -Name $name -Label $label -Command $command -Icon $null
 }
 
 function Get-PowershellAdmin-Config {
@@ -143,13 +157,32 @@ function Get-PowershellAdmin-Config {
     $label = "Open powershell window here (Admin)"
     $command = "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoExit -Command Set-Location -LiteralPath '%V'"
 
-    return New-Config -Name $name -Label $label -Command $command
+    return New-Config -Name $name -Label $label -Command $command -Icon $null
+}
+
+function Get-BashOnWindows-Config {
+    $name = "bashonwindows"
+    $label = "Open Bash on Windows here"
+    $command = $null
+    $icon = $null
+
+    if (Test-Path "C:\Windows\System32\bash.exe") {
+        $command = "C:\\Windows\\System32\\cmd.exe /c cd ""%V"" && C:\\Windows\\System32\\bash.exe"
+    }
+
+    if (Test-Path "$($env:LOCALAPPDATA)\lxss\bash.ico") {
+        $icon = "$($env:LOCALAPPDATA)\lxss\bash.ico" -replace "\\", "\\"
+    }
+
+    return New-Config -Name $name -Label $label -Command $command -Icon $icon
 }
 
 if ($ItemType -eq "cygwin") {
     $config = Get-Cygwin-Config
 } elseif ($ItemType -eq "powershelladmin") {
     $config = Get-PowershellAdmin-Config
+} elseif ($ItemType -eq "bashonwindows") {
+    $config = Get-BashOnWindows-Config
 }
 
 # Uninstall first
@@ -161,7 +194,7 @@ if ($config.Name) {
 
 if (!$Uninstall) {
     if ($config.Name -and $config.Label -and $config.Command) {
-        Install-Context-Entries -Name $config.Name -Label $config.Label -Command $config.Command
+        Install-Context-Entries -Name $config.Name -Label $config.Label -Command $config.Command -Icon $config.Icon
     } else {
         Write-Error "Could not set up config for install"
     }
