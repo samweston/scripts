@@ -4,7 +4,7 @@
 #requires -runasadministrator
 
 Param (
-    [ValidateSet("cygwin", "powershelladmin", "bashonwindows")]
+    [ValidateSet("cygwin", "powershelladmin", "bashonwindows", "vscode")]
     [Parameter(Mandatory=$true)]
     [String] $ItemType,
     [Switch] $Uninstall
@@ -111,13 +111,17 @@ function New-Config {
 }
 
 function Get-Cygwin-Config {
+    $name = "cygwin"
+    $label = "Open Cygwin here"
+    $command = $null
+    $directory = $null
+    $icon = $null
+
     # Maybe I just had a broken installation, but installs seem
     # to be a little inconsistent, so checking everything.
     $registryPath = "HKLM:\SOFTWARE\Cygwin\setup"
     $registryProp = "rootdir"
     $installDir = Get-RegistryItemString -Path $registryPath -Property $registryProp
-    
-    $directory = $null
 
     if (![string]::IsNullOrEmpty($installDir) -and (Test-Path -Path $installDir)) {
         $directory = $installDir
@@ -139,9 +143,9 @@ function Get-Cygwin-Config {
         }
     }
 
-    $name = "cygwin"
-    $label = "Open cygwin window here"
-    $command = $null
+    if ($directory -and (Test-Path "$directory\Cygwin.ico")) {
+        $icon = "$directory\Cygwin.ico"
+    }
 
     if ($directory) {
         $directory = $directory -replace "\\*$", "" # Don't want any trailing slashes in command.
@@ -149,7 +153,7 @@ function Get-Cygwin-Config {
         $command = "$directoryDblSlash\\bin\\mintty.exe -i /Cygwin-Terminal.ico $directory\bin\bash.exe  -l -c ""cd \""%V\"" ; exec bash"""
     }
 
-    return New-Config -Name $name -Label $label -Command $command -Icon $null
+    return New-Config -Name $name -Label $label -Command $command -Icon $icon
 }
 
 function Get-PowershellAdmin-Config {
@@ -177,12 +181,26 @@ function Get-BashOnWindows-Config {
     return New-Config -Name $name -Label $label -Command $command -Icon $icon
 }
 
+function Get-VSCode-Config {
+    $name = "vscode"
+    $label = "Open VS Code here"
+    $command = $null
+
+    if (Test-Path "C:\Program Files (x86)\Microsoft VS Code\Code.exe") {
+        $command = """C:\\Program Files (x86)\\Microsoft VS Code\\Code.exe"" ""%V"""
+    }
+
+    return New-Config -Name $name -Label $label -Command $command -Icon $null
+}
+
 if ($ItemType -eq "cygwin") {
     $config = Get-Cygwin-Config
 } elseif ($ItemType -eq "powershelladmin") {
     $config = Get-PowershellAdmin-Config
 } elseif ($ItemType -eq "bashonwindows") {
     $config = Get-BashOnWindows-Config
+} elseif ($ItemType -eq "vscode") {
+    $config = Get-VSCode-Config
 }
 
 # Uninstall first
