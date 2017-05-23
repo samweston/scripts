@@ -7,9 +7,9 @@
 # Inspired by https://github.com/samuell/mdnote
 
 if [ $# -eq 0 ] ; then
-    FILTER=.
+    VIEW_PATH=.
 else
-    FILTER=$1
+    VIEW_PATH=$1
 fi
 
 OUTPUT_FILE=gen.html
@@ -18,7 +18,7 @@ OUTPUT_FILE=gen.html
 REGEX=".*([0-9][0-9][0-9][0-9])/([0-9][0-9])/([0-9][0-9])\.md"
 
 if type pandoc &> /dev/null ; then
-    find $FILTER -name *.md | while read line ; do
+    find $VIEW_PATH -name *.md | sort -r | while read line ; do
         if [[ $line =~ $REGEX  ]] ; then
             YEAR=${BASH_REMATCH[1]}
             MONTH=${BASH_REMATCH[2]}
