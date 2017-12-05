@@ -186,8 +186,8 @@ function Get-VSCode-Config {
     $label = "Open VS Code here"
     $command = $null
 
-    if (Test-Path "C:\Program Files (x86)\Microsoft VS Code\Code.exe") {
-        $command = """C:\\Program Files (x86)\\Microsoft VS Code\\Code.exe"" ""%V"""
+    if (Test-Path "C:\Program Files\Microsoft VS Code\Code.exe") {
+        $command = """C:\\Program Files\\Microsoft VS Code\\Code.exe"" ""%V"""
     }
 
     return New-Config -Name $name -Label $label -Command $command -Icon $null
